@@ -5,11 +5,11 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import authRouter from './routes/authRouter.js';
 
+dotenv.config(); // must run before connectDB() so MONGO_URI is available
+
 const app = express();
 
 connectDB();
-
-dotenv.config();
 
 app.use(bodyParser.json());
 
