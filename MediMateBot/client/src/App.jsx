@@ -13,6 +13,11 @@ function App() {
   const [voiceError, setVoiceError] = useState(null);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
+  
+  // SOS state
+  const [sosActive, setSosActive] = useState(false);
+  const [sosDetails, setSosDetails] = useState(null);
+  const [sosNotification, setSosNotification] = useState(null);
 
   const chatEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);  // MediaRecorder instance
@@ -52,6 +57,43 @@ function App() {
       const botMessage = { role: "bot", text: data.reply || "No reply from server." };
       const finalMessages = [...newMessages, botMessage];
       setMessages(finalMessages);
+
+      // ── ANOMALY DETECTION: Trigger SOS if high severity detected ──
+      if (data.sosTriggered) {
+        setSosActive(true);
+        setSosDetails({
+          severity: "High",
+          timestamp: new Date().toLocaleString(),
+          symptoms: text,
+        });
+        
+        // Send SOS alert to main backend
+        try {
+          const userData = JSON.parse(localStorage.getItem('loggedInUser') || '{}');
+          await fetch('http://localhost:4000/api/sos/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userData._id || null,
+              userName: userData.name || 'Anonymous',
+              userEmail: userData.email || '',
+              severity: 'High',
+              symptoms: text,
+              triggerType: 'chatbot'
+            })
+          });
+        } catch (e) {
+          console.error('Failed to send SOS to backend:', e);
+        }
+        
+        // Play alert sound (optional)
+        try {
+          const alertAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeCUFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXxxoEnCBVmu+3qpVMbDU+m4PGzYhYLOJHX8st5IwUmeMjw3YtBCAc=');
+          alertAudio.play();
+        } catch (e) {
+          console.log("Could not play alert sound");
+        }
+      }
 
       // If the user appears to be ending the conversation, auto-generate a PDF report once.
       const lower = text.toLowerCase();
@@ -276,8 +318,100 @@ function App() {
     );
   }
 
+  // Emergency contact handlers
+  const handleEmergencyCall = () => {
+    setSosNotification('Calling emergency services...');
+    setTimeout(() => setSosNotification(null), 3000);
+    // Opens the phone app with emergency number (for mobile devices)
+    setTimeout(() => {
+      window.location.href = 'tel:112';
+    }, 500);
+  };
+
+  const handleShareLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+          // Copy to clipboard
+          navigator.clipboard.writeText(locationUrl);
+          setSosNotification('Location shared to emergency contacts');
+          setTimeout(() => setSosNotification(null), 3000);
+        },
+        (error) => {
+          setSosNotification('Could not get location. Please enable location services.');
+          setTimeout(() => setSosNotification(null), 3000);
+        }
+      );
+    } else {
+      setSosNotification('Geolocation is not supported by your browser.');
+      setTimeout(() => setSosNotification(null), 3000);
+    }
+  };
+
+  const handleContactEmergency = () => {
+    setSosNotification('Emergency contacts have been notified!');
+    setTimeout(() => setSosNotification(null), 3000);
+    // In production, this would make an API call to notify emergency contacts
+  };
+
+  const closeSosAlert = () => {
+    setSosActive(false);
+    setSosDetails(null);
+  };
+
   return (
     <div className="app">
+      {/* ─ SOS ALERT MODAL ─ */}
+      {sosActive && (
+        <div className="sos-overlay">
+          <div className="sos-modal">
+            <div className="sos-header">
+              <div className="sos-icon">!</div>
+              <h2>EMERGENCY ALERT</h2>
+              <p className="sos-severity">High Severity Detected</p>
+            </div>
+            
+            <div className="sos-body">
+              <p className="sos-message">
+                MediMate has detected potentially severe symptoms that require immediate medical attention.
+              </p>
+              
+              {sosDetails && (
+                <div className="sos-details">
+                  <p><strong>Symptoms:</strong> {sosDetails.symptoms}</p>
+                  <p><strong>Time:</strong> {sosDetails.timestamp}</p>
+                </div>
+              )}
+              
+              {/* Success notification */}
+              {sosNotification && (
+                <div className="sos-notification">
+                  {sosNotification}
+                </div>
+              )}
+              
+              <div className="sos-actions">
+                <button className="sos-btn sos-btn-primary" onClick={handleEmergencyCall}>
+                  Call 911
+                </button>
+                <button className="sos-btn sos-btn-secondary" onClick={handleShareLocation}>
+                  Share Location
+                </button>
+                <button className="sos-btn sos-btn-secondary" onClick={handleContactEmergency}>
+                  Notify Emergency Contacts
+                </button>
+              </div>
+              
+              <button className="sos-close" onClick={closeSosAlert}>
+                I acknowledge the alert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background floating shapes — more vibrant to match landing page */}
       <FloatingShape color="#0369a1" size={320} top="5%"  left="10%" delay={0} />
       <FloatingShape color="#0d9488" size={260} top="45%" left="72%" delay={3} />

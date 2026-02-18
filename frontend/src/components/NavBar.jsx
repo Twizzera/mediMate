@@ -41,9 +41,29 @@ const NavBar = () => {
   const handleSOS = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const { latitude, longitude } = pos.coords;
           const mapLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+          
+          // Send to backend
+          try {
+            const userData = JSON.parse(localStorage.getItem('loggedInUser') || '{}');
+            await fetch('http://localhost:4000/api/sos/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userData._id || null,
+                userName: userData.name || 'Anonymous',
+                userEmail: userData.email || '',
+                latitude,
+                longitude,
+                triggerType: 'manual'
+              })
+            });
+          } catch (e) {
+            console.error('Failed to send SOS to backend:', e);
+          }
+          
           setNotification({
             message: `🚨 SOS Triggered! Your location (${latitude.toFixed(
               2
@@ -58,6 +78,26 @@ const NavBar = () => {
             const data = await res.json();
             const { latitude, longitude } = data;
             const mapLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+            
+            // Send to backend
+            try {
+              const userData = JSON.parse(localStorage.getItem('loggedInUser') || '{}');
+              await fetch('http://localhost:4000/api/sos/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: userData._id || null,
+                  userName: userData.name || 'Anonymous',
+                  userEmail: userData.email || '',
+                  latitude,
+                  longitude,
+                  triggerType: 'manual'
+                })
+              });
+            } catch (e) {
+              console.error('Failed to send SOS to backend:', e);
+            }
+            
             setNotification({
               message: `🚨 SOS Triggered! Your approximate location (${latitude.toFixed(
                 2
@@ -81,6 +121,26 @@ const NavBar = () => {
           const data = await res.json();
           const { latitude, longitude } = data;
           const mapLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+          
+          // Send to backend
+          try {
+            const userData = JSON.parse(localStorage.getItem('loggedInUser') || '{}');
+            await fetch('http://localhost:4000/api/sos/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userData._id || null,
+                userName: userData.name || 'Anonymous',
+                userEmail: userData.email || '',
+                latitude,
+                longitude,
+                triggerType: 'manual'
+              })
+            });
+          } catch (e) {
+            console.error('Failed to send SOS to backend:', e);
+          }
+          
           setNotification({
             message: `🚨 SOS Triggered! Your approximate location (${latitude.toFixed(
               2

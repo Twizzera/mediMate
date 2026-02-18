@@ -77,7 +77,15 @@ LATEST USER MESSAGE (focus on this turn in the context of the chat above):
     const result = await model.generateContent(prompt);
     const reply = result.response.text();
 
-    res.json({ reply });
+    // ── ANOMALY DETECTION: Check for High Severity ──
+    let sosTriggered = false;
+    const severityMatch = reply.match(/Severity:\s*(High|Severe)/i);
+    if (severityMatch) {
+      sosTriggered = true;
+      console.log(`⚠️ HIGH SEVERITY DETECTED - SOS TRIGGERED for symptoms: "${symptoms}"`);
+    }
+
+    res.json({ reply, sosTriggered });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to get response from Gemini" });
