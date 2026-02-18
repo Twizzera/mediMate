@@ -15,20 +15,11 @@ export const signup = async (req, res) => {
         const newUser = new userModel({ name, email, password: hashedPassword });
         await newUser.save();
 
-        const jwtToken = jwt.sign(
-            { email: newUser.email, _id: newUser._id },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
         res.status(201).json({
             message: "Signup successful",
-            success: true,
-            jwtToken,
-            name: newUser.name
+            success: true
         });
     } catch (err) {
-        console.error("Signup error:", err);
         res.status(500).json({
             message: "Internal server error",
             success: false
